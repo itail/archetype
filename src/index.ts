@@ -410,20 +410,24 @@ export function withStorage(
         const historyForRetrospect = rawMessages
           .filter(m => !m.isNote && (m.role === 'user' || m.role === 'assistant'))
           .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-        await runRetrospect({
-          conversationId: input.conversationId,
-          context: input.context,
-          timezone: input.timezone,
-          promptNow: input.promptNow,
-          userIdentity: input.userIdentity,
-          locale: input.locale,
-          directives: input.directives,
-          promptMode: input.promptMode,
-          promptScaffold: input.promptScaffold,
-          extraSystemSections: input.extraSystemSections,
-          guidelines: retrospectConfig.guidelines,
-          history: historyForRetrospect,
-        })
+        try {
+          await runRetrospect({
+            conversationId: input.conversationId,
+            context: input.context,
+            timezone: input.timezone,
+            promptNow: input.promptNow,
+            userIdentity: input.userIdentity,
+            locale: input.locale,
+            directives: input.directives,
+            promptMode: input.promptMode,
+            promptScaffold: input.promptScaffold,
+            extraSystemSections: input.extraSystemSections,
+            guidelines: retrospectConfig.guidelines,
+            history: historyForRetrospect,
+          })
+        } catch (err) {
+          console.error('[archetype] Auto retrospective failed:', err instanceof Error ? err.message : err)
+        }
       }
     }
 

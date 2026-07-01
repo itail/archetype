@@ -1,4 +1,5 @@
-import type { PersonaConfig, ChatInput, ChatResult, ParsedAction, CrudAction, EntityConfig, TurnTrace, TracedAction, TracedCrudAction } from '../types.js'
+import { createHash } from 'node:crypto'
+import type { PersonaConfig, ChatInput, ChatResult, ParsedAction, CrudAction, EntityConfig, TurnTrace, TracedAction, TracedCrudAction, LLMProviderRequest, TracedLLMRequest } from '../types.js'
 import { applyActionsToWorkingSet, summarizeWorkingSet, usesWorkingSet } from './working-set.js'
 import { separateCrudActions, validateAndTraceCrud } from './crud.js'
 import { buildChatLLMRequest } from '../core/request-builder.js'
@@ -17,6 +18,31 @@ export function createTrace(options?: { personaId?: string; correlationId?: stri
     domainActions: [],
     outcomeNotes: [],
     errors: [],
+  }
+}
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function traceLLMRequest(request: LLMProviderRequest & { promptMode?: unknown; promptOrigin?: unknown }): TracedLLMRequest {
+  return {
+    systemPrompt: request.systemPrompt,
+    history: request.history,
+    message: request.message,
+    ...(request.responseSchema ? { responseSchema: request.responseSchema } : {}),
+    ...(request.attachments?.length
+      ? {
+          attachments: request.attachments.map(att => ({
+            type: att.type,
+            mimeType: att.mimeType,
+            dataSha256: sha256(att.data),
+            dataLength: att.data.length,
+          })),
+        }
+      : {}),
+    ...(typeof request.promptMode === 'string' ? { promptMode: request.promptMode as TracedLLMRequest['promptMode'] } : {}),
+    ...(typeof request.promptOrigin === 'string' ? { promptOrigin: request.promptOrigin as TracedLLMRequest['promptOrigin'] } : {}),
   }
 }
 
@@ -62,12 +88,15 @@ export async function chat(
 ): Promise<ChatResult> {
   const { effectiveConfig, request } = buildChatLLMRequest(config, input)
   const trace = createTrace({ personaId: input.personaId, correlationId: input.correlationId })
+  trace.llmRequest = traceLLMRequest(request)
 
   const response = await effectiveConfig.provider.chat(request)
   trace.provider = {
     name: effectiveConfig.provider.name,
     ...(response.requestedModel ? { requestedModel: response.requestedModel } : {}),
     ...(response.model ? { model: response.model } : {}),
+    ...(response.requestFingerprint ? { requestFingerprint: response.requestFingerprint } : {}),
+    ...(response.attempts ? { attempts: response.attempts } : {}),
   }
 
   // 4. Parse response

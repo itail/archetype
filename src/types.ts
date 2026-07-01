@@ -70,7 +70,11 @@ export interface TurnTrace {
     name: string
     requestedModel?: string
     model?: string
+    requestFingerprint?: LLMRequestFingerprint
+    attempts?: LLMProviderAttempt[]
   }
+  /** Exact Archetype text request assembled before provider transport. */
+  llmRequest?: TracedLLMRequest
   startedAt: number
   completedAt?: number
 
@@ -724,12 +728,48 @@ export interface LLMProviderRequest {
   attachments?: ChatAttachment[]
 }
 
+export interface TracedLLMRequest {
+  systemPrompt: string
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  message: string
+  responseSchema?: Record<string, unknown>
+  attachments?: Array<{
+    type: ChatAttachment['type']
+    mimeType: string
+    dataSha256: string
+    dataLength: number
+  }>
+  promptMode?: PromptMode
+  promptOrigin?: PromptOrigin
+}
+
+export interface LLMRequestFingerprint {
+  sha256: string
+  systemPromptSha256?: string
+  historySha256?: string
+  messageSha256?: string
+  responseSchemaSha256?: string
+  historyCount?: number
+  attachmentCount?: number
+}
+
+export interface LLMProviderAttempt {
+  model: string
+  status: 'success' | 'failed'
+  error?: string
+  retryable?: boolean
+}
+
 export interface LLMProviderResponse {
   text: string
   /** Actual model that returned this response, when the provider exposes it. */
   model?: string
   /** Requested primary model, when different from the provider name or useful for fallback traces. */
   requestedModel?: string
+  /** Fingerprint of the provider payload shared by every fallback attempt. */
+  requestFingerprint?: LLMRequestFingerprint
+  /** Provider attempts made before a response or terminal failure. */
+  attempts?: LLMProviderAttempt[]
 }
 
 export interface LLMProvider {

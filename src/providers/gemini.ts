@@ -5,11 +5,40 @@ import {
   type Schema,
   type Part,
 } from '@google/generative-ai'
-import type { LLMProvider, LLMProviderRequest, LLMProviderResponse, ActionDefinition, EntityConfig } from '../types.js'
+import { createHash } from 'node:crypto'
+import type { LLMProvider, LLMProviderRequest, LLMProviderResponse, ActionDefinition, EntityConfig, LLMProviderAttempt, LLMRequestFingerprint } from '../types.js'
 import { zodToGeminiSchema } from './zod-to-gemini.js'
 
 const FOLLOW_UPS_CORE_DESCRIPTION =
   'Optional short phrases the USER would tap to continue the conversation — written in their voice, not yours. Example: "My right bicep is still sore" not "How is your right bicep feeling?"'
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  const obj = value as Record<string, unknown>
+  return `{${Object.keys(obj).sort().map(key => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`
+}
+
+function sha256(value: unknown): string {
+  return createHash('sha256').update(typeof value === 'string' ? value : stableStringify(value)).digest('hex')
+}
+
+function traceSafeMessageParts(messageParts: string | Part[]): unknown {
+  if (typeof messageParts === 'string') return messageParts
+  return messageParts.map(part => {
+    const inlineData = (part as unknown as { inlineData?: { mimeType?: string; data?: string } }).inlineData
+    if (inlineData?.data) {
+      return {
+        inlineData: {
+          mimeType: inlineData.mimeType,
+          dataSha256: sha256(inlineData.data),
+          dataLength: inlineData.data.length,
+        },
+      }
+    }
+    return part
+  })
+}
 
 function buildFollowUpsDescription(appDescription?: string): string {
   if (!appDescription?.trim()) return FOLLOW_UPS_CORE_DESCRIPTION
@@ -253,6 +282,24 @@ export function Gemini(config?: GeminiConfig): LLMProvider {
         ? extractFunctionDeclarationsFromSchema(request.responseSchema)
         : null
 
+      const requestFingerprint: LLMRequestFingerprint = {
+        sha256: sha256({
+          systemInstruction: request.systemPrompt,
+          generationConfig,
+          historyForChat,
+          messageParts: traceSafeMessageParts(messageParts),
+          responseSchema: request.responseSchema ?? null,
+          useFunctionCalling: Boolean(fnDecls && fnDecls.length > 0),
+        }),
+        systemPromptSha256: sha256(request.systemPrompt),
+        historySha256: sha256(historyForChat),
+        messageSha256: sha256(traceSafeMessageParts(messageParts)),
+        ...(request.responseSchema ? { responseSchemaSha256: sha256(request.responseSchema) } : {}),
+        historyCount: historyForChat.length,
+        attachmentCount: request.attachments?.length ?? 0,
+      }
+      const attempts: LLMProviderAttempt[] = []
+
       /** Attempt a single chat call with the given model name */
       const attempt = async (targetModel: string): Promise<LLMProviderResponse> => {
         const modelInit: Parameters<typeof genAI.getGenerativeModel>[0] = {
@@ -318,7 +365,8 @@ export function Gemini(config?: GeminiConfig): LLMProvider {
               `Gemini returned empty response (finishReason: ${finishReason ?? 'unknown'}). Try again.`,
             )
           }
-          return { text: JSON.stringify({ message: messageText, actions }), model: targetModel, requestedModel: modelName }
+          attempts.push({ model: targetModel, status: 'success' })
+          return { text: JSON.stringify({ message: messageText, actions }), model: targetModel, requestedModel: modelName, requestFingerprint, attempts: [...attempts] }
         }
 
         const text = result.response.text()
@@ -329,7 +377,8 @@ export function Gemini(config?: GeminiConfig): LLMProvider {
           )
         }
 
-        return { text, model: targetModel, requestedModel: modelName }
+        attempts.push({ model: targetModel, status: 'success' })
+        return { text, model: targetModel, requestedModel: modelName, requestFingerprint, attempts: [...attempts] }
       }
 
       // Cascade through model chain — each model gets full retry treatment
@@ -345,7 +394,9 @@ export function Gemini(config?: GeminiConfig): LLMProvider {
             return await attempt(currentModel)
           } catch (err: unknown) {
             lastError = err instanceof Error ? err : new Error(String(err))
-            if (!isRetryable(lastError)) {
+            const retryable = isRetryable(lastError)
+            attempts.push({ model: currentModel, status: 'failed', error: lastError.message, retryable })
+            if (!retryable) {
               // Schema/config errors (400) won't be fixed by retrying or falling back — fail immediately.
               throw lastError
             }
