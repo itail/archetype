@@ -1,0 +1,12 @@
+{
+  "name": "archetype-example-coder-agent",
+  "private": true,
+  "type": "module",
+  "description": "Reference app for building code-writing personas on archetype.",
+  "dependencies": {
+    "archetype": "file:../.."
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  }
+}

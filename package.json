@@ -1,0 +1,68 @@
+{
+  "name": "@itail/archetype",
+  "version": "0.3.29",
+  "description": "TypeScript SDK for building AI expert personas that feel human, remember what matters, and act reliably",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itail/archetype.git"
+  },
+  "keywords": [
+    "ai",
+    "persona",
+    "coaching",
+    "llm",
+    "gemini",
+    "structured-output",
+    "memory",
+    "typescript"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./builder": {
+      "import": "./dist/builder/index.js",
+      "types": "./dist/builder/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "golden:update": "npm run build && node scripts/update-golden-prompts.mjs",
+    "test": "vitest run",
+    "test:live": "vitest run tests/turing.test.ts",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "audit:samples": "tsx scripts/audit-samples.ts",
+    "audit:examples": "npm run build && npm run audit:samples && node examples/coder-agent/audit.mjs && node examples/pm-spec-agent/audit.mjs",
+    "prepare": "npm run build",
+    "demo:paperclip-service": "node examples/paperclip-archetype-service/index.mjs",
+    "demo:paperclip-bootstrap": "node examples/paperclip-archetype-service/bootstrap.mjs"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0"
+  },
+  "//": "playwright + @anthropic-ai/sandbox-runtime are devDependencies consumed only by examples/coder-agent; archetype itself dynamic-imports them at runtime so it ships without either.",
+  "devDependencies": {
+    "@anthropic-ai/sandbox-runtime": "^0.0.49",
+    "@types/node": "^25.5.0",
+    "playwright": "^1.48.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0",
+    "zod": "^3.25.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

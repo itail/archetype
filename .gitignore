@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+*.tgz
+.DS_Store
+examples/coder-agent/.runs/
+examples/coder-agent/.traces/
