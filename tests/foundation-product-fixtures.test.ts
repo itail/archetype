@@ -54,7 +54,7 @@ describe('foundation product fixtures', () => {
       budget: 3000,
     })
 
-    const world = archetype.world.savor({
+    const world = archetype.world.nutrition({
       user: { id: 'user-1', name: 'Alex' },
       profile: { id: 'profile-1', goal: 'cut', dailyCalories: 1800 },
       meals: [{ id: 'meal-1', description: 'Longevity Anchor breakfast' }],
@@ -64,14 +64,14 @@ describe('foundation product fixtures', () => {
     })
 
     expect(savor.inspect().archetype).toBe('nutrition-coach')
-    expect(world.kind).toBe('savor-world')
+    expect(world.kind).toBe('nutrition-world')
     expect((world.data.personMemory as typeof personMemory).semanticsOwner).toBe('archetype')
     expect((world.data.craftMemory as typeof craftMemory).scope).toBe('craft')
   })
 
   it('models Iron as full-persona reality without adding fitness prompt prose', () => {
     const iron = archetype.fitnessCoach({ provider })
-    const world = archetype.world.ironFitness({
+    const world = archetype.world.fitness({
       athlete: { id: 'athlete-1', name: 'Alex' },
       trainingPlan: { id: 'plan-1', focus: 'lower strength' },
       recentWorkouts: [{ id: 'workout-1', title: 'Squat day', completedAt: '2026-04-23' }],
@@ -81,11 +81,11 @@ describe('foundation product fixtures', () => {
     })
 
     expect(iron.inspect().archetype).toBe('fitness-coach')
-    expect(world.kind).toBe('iron-fitness-world')
-    expect(() => archetype.world.ironFitness({
+    expect(world.kind).toBe('fitness-world')
+    expect(() => archetype.world.fitness({
       athlete: { id: 'athlete-1' },
       methodology: 'Always start with a compound lift.',
-    } as any)).toThrow(/world\.ironFitness does not accept app-authored prompt field "methodology"/u)
+    } as any)).toThrow(/world\.fitness does not accept app-authored prompt field "methodology"/u)
   })
 
   it('models Orbit as full-persona reality with peer data and thread CRUD surfaces', () => {
@@ -100,7 +100,7 @@ describe('foundation product fixtures', () => {
       adapter: ledgerAdapter,
     })
 
-    const world = archetype.world.orbit({
+    const world = archetype.world.inbox({
       account: { id: 'acct-1', email: 'alex@example.com' },
       threads: [{ id: 'thread-1', subject: 'Advisor confirmation', state: 'active' }],
       selectedThread: { id: 'thread-1' },
@@ -110,12 +110,12 @@ describe('foundation product fixtures', () => {
     })
 
     expect(orbit.inspect().archetype).toBe('personal-assistant')
-    expect(world.kind).toBe('orbit-world')
+    expect(world.kind).toBe('inbox-world')
     expect((world.data.ledgers as { threads: typeof threadLedger }).threads.docsSource).toBe('generated')
-    expect(() => archetype.world.orbit({
+    expect(() => archetype.world.inbox({
       threads: [],
       sections: { inbox: 'INBOX LANDSCAPE' },
-    } as any)).toThrow(/world\.orbit does not accept app-authored prompt field "sections"/u)
+    } as any)).toThrow(/world\.inbox does not accept app-authored prompt field "sections"/u)
   })
 
   it('models Compound ledgers as typed mutable records with visible ids', () => {

@@ -24,7 +24,7 @@ When a persona misbehaves, follow this loop in order. Each step answers a differ
 Start every debugging session here. One call, unified report across every audit Archetype ships.
 
 ```typescript
-import { auditPersona, printAuditReport } from 'archetype'
+import { auditPersona, printAuditReport } from '@itaila/archetype'
 import { MY_PERSONA_CONFIG } from '../src/persona' // see "Prerequisites" below
 
 async function main() {
@@ -100,7 +100,7 @@ The report's `auditsSkipped` tells you which audits didn't run and why. Use that
 When Step 1 flags something you can't explain, or behavior is off and Step 1 is clean, pull the full assembled prompt and read it directly. Often the bug is visible in 30 seconds of scrolling.
 
 ```typescript
-import { dumpPromptForReview } from 'archetype'
+import { dumpPromptForReview } from '@itaila/archetype'
 
 const dumped = dumpPromptForReview(myPersona.config, {
   message: "the user's message on the turn that went wrong",
@@ -125,7 +125,7 @@ console.log(dumped.artifact)
 If you're running a benchmark, the one-shot dump isn't enough — you want every turn recorded automatically. Wire the recorder into `runAutonomousLoop`'s `onBeforeChat` hook:
 
 ```typescript
-import { createPromptTraceRecorder, runAutonomousLoop } from 'archetype'
+import { createPromptTraceRecorder, runAutonomousLoop } from '@itaila/archetype'
 
 const recorder = createPromptTraceRecorder({
   outDir: './run-123/prompt-traces',
@@ -154,7 +154,7 @@ For hand-rolled benchmark harnesses that don't use `runAutonomousLoop`, use `rec
 This is the floor. When Steps 1 and 2 look clean but behavior is wrong, or when you just want to be sure the trace you're inspecting is honest, run this.
 
 ```typescript
-import { auditTraceIntegrity } from 'archetype'
+import { auditTraceIntegrity } from '@itaila/archetype'
 
 const result = await myPersona.chat({ /* ... */ })
 const integrity = auditTraceIntegrity(result.trace)

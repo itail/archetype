@@ -108,7 +108,7 @@ Use Layer 1 directly when:
 
 Examples:
 
-- Paperclip-style integrations
+- embedding Archetype as a specialized runtime behind an external orchestration platform
 - judges and eval harnesses
 - specialist services behind another platform
 

@@ -19,7 +19,7 @@ When you declare entities in your persona config, the SDK auto-generates create/
 4. The app handles entity changes through `commitCrud` with a `CrudEntityHandler` per entity:
 
 ```ts
-import { commitCrud, type CrudEntityHandler } from 'archetype'
+import { commitCrud, type CrudEntityHandler } from '@itaila/archetype'
 
 const taskHandler: CrudEntityHandler = {
   create: async (id, params) => { /* persist */ return { success: true } },

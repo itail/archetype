@@ -73,21 +73,21 @@ describe('foundation sealed product path', () => {
       ],
     })
 
-    expect(() => archetype.world.savor({
+    expect(() => archetype.world.nutrition({
       user: { id: 'u1' },
       meals: [],
       contextInputs: { meals: { label: 'MEALS' } },
-    } as any)).toThrow(/world\.savor does not accept app-authored prompt field "contextInputs"/u)
+    } as any)).toThrow(/world\.nutrition does not accept app-authored prompt field "contextInputs"/u)
 
-    expect(() => archetype.world.orbit({
+    expect(() => archetype.world.inbox({
       threads: [],
       labels: { threads: 'INBOX LANDSCAPE' },
-    } as any)).toThrow(/world\.orbit does not accept app-authored prompt field "labels"/u)
+    } as any)).toThrow(/world\.inbox does not accept app-authored prompt field "labels"/u)
   })
 
   it('rejects every known prompt-shaped knob on world surfaces', () => {
     for (const knob of foundationPromptKnobs) {
-      expect(() => archetype.world.compound({ accounts: [], [knob]: 'helpful context wrapper' } as any), knob)
+      expect(() => archetype.world.finance({ accounts: [], [knob]: 'helpful context wrapper' } as any), knob)
         .toThrow(new RegExp(`does not accept app-authored prompt field "${knob}"`, 'u'))
     }
   })

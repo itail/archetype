@@ -61,14 +61,14 @@ export type {
   GenericWorld,
   AuditLedgerRecordsInput,
   AuditMemoryRecordsInput,
-  IronFitnessWorld,
+  FitnessWorld,
   LedgerAdapter,
   LedgerInput,
   MemoryAdapter,
   MemorySurfaceInput,
-  OrbitWorld,
-  SavorWorld,
-  CompoundWorld,
+  InboxWorld,
+  NutritionWorld,
+  FinanceWorld,
   WorkspaceRoot,
   WorkspaceWorld,
   WorkspaceWorldInput,
@@ -1362,6 +1362,7 @@ export type {
 } from './engine/continuity.js'
 export { parseActionName, actionLabel, getActionDisplayTitle, isEntityAction } from './core/entity-helpers.js'
 export { reviewMemories, compactMemories } from './managed/memory-review.js'
+export { createInMemoryAdapter, type InMemoryAdapter } from './managed/in-memory-adapter.js'
 export { runAutonomousLoop } from './managed/autonomous-loop.js'
 export type {
   AutonomousLoopHooks,

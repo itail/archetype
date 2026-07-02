@@ -120,7 +120,7 @@ actions: {},  // empty — named actions are rare
 After `chat()`, handle entity changes through `commitCrud`:
 
 ```ts
-import { commitCrud } from 'archetype'
+import { commitCrud } from '@itaila/archetype'
 
 // In managed mode, memory CRUD is handled automatically.
 // Filter it out and commit only domain entities.

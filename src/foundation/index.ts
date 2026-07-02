@@ -30,10 +30,10 @@ export interface FoundationResolvedContract {
 
 export type FoundationWorld =
   | WorkspaceWorld
-  | SavorWorld
-  | CompoundWorld
-  | OrbitWorld
-  | IronFitnessWorld
+  | NutritionWorld
+  | FinanceWorld
+  | InboxWorld
+  | FitnessWorld
   | GenericWorld
 
 export interface WorkspaceRoot {
@@ -51,23 +51,23 @@ export interface WorkspaceWorld {
   readonly roots: readonly WorkspaceRoot[]
 }
 
-export interface SavorWorld {
-  readonly kind: 'savor-world'
+export interface NutritionWorld {
+  readonly kind: 'nutrition-world'
   readonly data: Record<string, unknown>
 }
 
-export interface CompoundWorld {
-  readonly kind: 'compound-world'
+export interface FinanceWorld {
+  readonly kind: 'finance-world'
   readonly data: Record<string, unknown>
 }
 
-export interface OrbitWorld {
-  readonly kind: 'orbit-world'
+export interface InboxWorld {
+  readonly kind: 'inbox-world'
   readonly data: Record<string, unknown>
 }
 
-export interface IronFitnessWorld {
-  readonly kind: 'iron-fitness-world'
+export interface FitnessWorld {
+  readonly kind: 'fitness-world'
   readonly data: Record<string, unknown>
 }
 
@@ -215,21 +215,21 @@ export const archetype = {
       rejectPromptKnobs(input as unknown as Record<string, unknown>, 'world.workspace')
       return { kind: 'workspace-world', roots: input.roots.map(root => ({ ...root })) }
     },
-    savor(input: Record<string, unknown>): SavorWorld {
-      rejectPromptKnobs(input, 'world.savor')
-      return { kind: 'savor-world', data: { ...input } }
+    nutrition(input: Record<string, unknown>): NutritionWorld {
+      rejectPromptKnobs(input, 'world.nutrition')
+      return { kind: 'nutrition-world', data: { ...input } }
     },
-    compound(input: Record<string, unknown>): CompoundWorld {
-      rejectPromptKnobs(input, 'world.compound')
-      return { kind: 'compound-world', data: { ...input } }
+    finance(input: Record<string, unknown>): FinanceWorld {
+      rejectPromptKnobs(input, 'world.finance')
+      return { kind: 'finance-world', data: { ...input } }
     },
-    orbit(input: Record<string, unknown>): OrbitWorld {
-      rejectPromptKnobs(input, 'world.orbit')
-      return { kind: 'orbit-world', data: { ...input } }
+    inbox(input: Record<string, unknown>): InboxWorld {
+      rejectPromptKnobs(input, 'world.inbox')
+      return { kind: 'inbox-world', data: { ...input } }
     },
-    ironFitness(input: Record<string, unknown>): IronFitnessWorld {
-      rejectPromptKnobs(input, 'world.ironFitness')
-      return { kind: 'iron-fitness-world', data: { ...input } }
+    fitness(input: Record<string, unknown>): FitnessWorld {
+      rejectPromptKnobs(input, 'world.fitness')
+      return { kind: 'fitness-world', data: { ...input } }
     },
     generic(input: { ledgers?: Record<string, FoundationLedger>; data?: Record<string, unknown> }): GenericWorld {
       rejectPromptKnobs(input, 'world')

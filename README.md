@@ -1,8 +1,12 @@
 # Archetype
 
+[![CI](https://github.com/itail/archetype/actions/workflows/ci.yml/badge.svg)](https://github.com/itail/archetype/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40itaila%2Farchetype)](https://www.npmjs.com/package/@itaila/archetype)
+
 A TypeScript SDK for building AI expert personas — coaches, guides, assistants — that feel human, remember what matters, and act reliably inside real products.
 
 Define your persona in ~50 lines of config. Archetype handles prompt assembly, structured actions, memory that compounds over time, and the behavioral guardrails that make AI companions feel natural instead of robotic.
+
+> **Provenance:** Archetype was extracted from a private foundation that runs five production persona apps (nutrition coaching, fitness, executive coaching, personal finance, and an email PA). It went public at v0.3.30 — the version history before that lives in the private lab. The 660+ test suite runs offline in seconds; live evals are opt-in.
 
 ## Philosophy
 
@@ -25,8 +29,16 @@ That means:
 
 ## Quick Start
 
+```bash
+npm install @itaila/archetype zod
+```
+
+You'll need a Gemini API key (`GEMINI_API_KEY` env var, or pass `apiKey` to the provider). Gemini ships built-in; any other model works through the small `LLMProvider` interface — see [Custom providers](#custom-providers).
+
+This example is fully self-contained — `createInMemoryAdapter()` gives you working persistence with zero setup (swap in your own `StorageAdapter` when you have a database):
+
 ```ts
-import { definePersona, withStorage, commitCrud, Gemini } from 'archetype'
+import { definePersona, withStorage, commitCrud, createInMemoryAdapter, Gemini } from '@itaila/archetype'
 import { z } from 'zod'
 
 const engine = definePersona({
@@ -47,20 +59,22 @@ const engine = definePersona({
   actions: {},                  // named actions are rare — most ops are entity CRUD
   memory: { enabled: true, includeIds: true },
   eq: { frequencyRule: true, autonomyRespect: true },
-  provider: Gemini({ model: 'gemini-3-flash-preview' }),
+  provider: Gemini({ model: 'gemini-3.5-flash' }),
 })
 
+const tasks: Array<{ id: string; title: string; due?: string }> = []
+
 const managed = withStorage(engine, {
-  adapter: myStorageAdapter,   // implements StorageAdapter
+  adapter: createInMemoryAdapter(),
   historyLimit: 30,
   memoryBudget: 8000,
 })
 
 const result = await managed.chat({
   message: 'Remind me to send the investor update Thursday morning.',
-  context: { openTasks },
+  context: { openTasks: tasks.map(t => `- (id:${t.id}) ${t.title}${t.due ? ` (due ${t.due})` : ''}`).join('\n') || 'none' },
   userIdentity: 'Alex, CEO',
-  timezone: userTimezone,      // send from the app/client
+  timezone: 'America/New_York', // send the user's timezone from the app/client
 })
 
 // result.message      — the persona's response
@@ -69,25 +83,23 @@ const result = await managed.chat({
 // result.outcomeNotes  — what changed because of this turn
 // result.followUps     — suggested next things the user might say
 
-// In managed mode, memory CRUD is SDK-owned.
-// Commit only domain entities through your app handlers.
-const memoryCrudEntities = new Set(['memory', 'craftMemory'])
-const domainCrud = result.crudActions.filter(a => !memoryCrudEntities.has(a.entity))
-
-const handlers = {
+// Memory CRUD is SDK-owned in managed mode — result.crudActions only carries
+// your domain entities. Commit them through your app handlers:
+const commitResults = await commitCrud(result.crudActions ?? [], {
   task: {
-    create: async (id, params) => { await db.tasks.create({ id, ...params }); return { success: true } },
-    update: async (id, params) => { await db.tasks.update(id, params); return { success: true } },
-    delete: async (id) => { await db.tasks.delete(id); return { success: true } },
+    create: async (id, params) => { tasks.push({ id, ...(params as { title: string; due?: string }) }); return { success: true } },
+    update: async (id, params) => { Object.assign(tasks.find(t => t.id === id) ?? {}, params); return { success: true } },
+    delete: async (id) => { tasks.splice(tasks.findIndex(t => t.id === id), 1); return { success: true } },
   },
-}
-const commitResults = await commitCrud(domainCrud, handlers)
+})
 if (commitResults.some(r => !r.success)) {
   throw new Error('Task commit failed')
 }
+
+console.log(result.message)
 ```
 
-For product apps with persistence, this is the default path: `withStorage()` + `managed.chat()` / `managed.promptedTurn()` + `entities` + `commitCrud()`.
+For product apps with persistence, this is the default path: `withStorage()` + `managed.chat()` / `managed.promptedTurn()` + `entities` + `commitCrud()`. A complete runnable app (Express server, UI, in-memory storage) lives in [`sample-app/`](sample-app/).
 
 ## Architecture
 
@@ -121,7 +133,7 @@ Layer 2 (Managed) Optional persistence via StorageAdapter.
   Testing prompt assembly or building low-level SDK features.
 
 ```ts
-import { definePersona, withStorage, Gemini } from 'archetype'
+import { definePersona, withStorage, Gemini } from '@itaila/archetype'
 
 const engine = definePersona({ /* config */ })
 
@@ -209,7 +221,7 @@ actions: {},  // empty — named actions are rare
 After `chat()`, handle normalized entity changes through `commitCrud`:
 
 ```ts
-import { commitCrud } from 'archetype'
+import { commitCrud } from '@itaila/archetype'
 
 await commitCrud(result.crudActions, {
   meal: {
@@ -289,7 +301,7 @@ Two layers of mutations:
 - **Transport layer** — external effects (API calls, database writes). Staged for explicit commit.
 
 ```ts
-import { reviewWorkingSetDelta } from 'archetype'
+import { reviewWorkingSetDelta } from '@itaila/archetype'
 
 staging: { model: 'working-set' },
 actions: {
@@ -321,7 +333,7 @@ Use `reviewWorkingSetDelta()` or managed `reviewWorkingSet()` to apply canonical
 After `chat()`, execute entity CRUD through `commitCrud` (the primary pattern):
 
 ```ts
-import { commitCrud } from 'archetype'
+import { commitCrud } from '@itaila/archetype'
 
 const results = await commitCrud(result.crudActions, {
   task: {
@@ -335,7 +347,7 @@ const results = await commitCrud(result.crudActions, {
 For the rare named actions, use `executeSideEffects`:
 
 ```ts
-import { executeSideEffects } from 'archetype'
+import { executeSideEffects } from '@itaila/archetype'
 
 const results = await executeSideEffects(result.actions, handlers, persona.config.actions!)
 ```
@@ -431,21 +443,21 @@ That split is intentional. Archetype handles the AI orchestration so you can foc
 
 ## Documentation
 
+**Reading order:** this README → [PRODUCT_APP_START_HERE.md](PRODUCT_APP_START_HERE.md) → [PLAYBOOK_ESSENTIALS.md](PLAYBOOK_ESSENTIALS.md) → [DEBUGGING_LOOP.md](DEBUGGING_LOOP.md). Everything else on demand.
+
 | Doc | What it covers |
 |-----|----------------|
-| [POSITIONING.md](POSITIONING.md) | What Archetype is, what it is not, and how it differs from orchestration-first or memory-first frameworks |
 | [PRODUCT_APP_START_HERE.md](PRODUCT_APP_START_HERE.md) | The shortest clean default for real product apps using Layer 2 |
-| [AI_PERSONA_PLAYBOOK.md](AI_PERSONA_PLAYBOOK.md) | Why good personas work, and what usually makes them feel robotic |
-| [CLAUDE.md](CLAUDE.md) | SDK architecture, module structure, commands, and implementation patterns |
+| [PLAYBOOK_ESSENTIALS.md](PLAYBOOK_ESSENTIALS.md) | The condensed persona-design playbook — read this before writing any prompt |
+| [DEBUGGING_LOOP.md](DEBUGGING_LOOP.md) | The 3-step loop for diagnosing persona misbehavior |
+| [POSITIONING.md](POSITIONING.md) | What Archetype is, what it is not, and how it differs from orchestration-first or memory-first frameworks |
+| [AI_PERSONA_PLAYBOOK.md](AI_PERSONA_PLAYBOOK.md) | The full playbook: why good personas work, and what usually makes them feel robotic |
 | [EVALS.md](EVALS.md) | Eval philosophy, sample personas, and the stress-testing harness |
 | [ACTION_CONTRACTS.md](ACTION_CONTRACTS.md) | How to design action shapes that models follow reliably |
 | [WORKING_SET.md](WORKING_SET.md) | When to use working-set staging vs. legacy batch proposals |
-| [NEXT_RUNTIME_PRIMITIVES.md](NEXT_RUNTIME_PRIMITIVES.md) | The likely next 80/20 runtime additions after strong single-role chat |
-| [ECOSYSTEM_SHORTLIST_2026-04.md](ECOSYSTEM_SHORTLIST_2026-04.md) | Dated external ecosystem shortlist: what to adopt, align with, watch, or avoid as core |
+| [PROMPT_MODES.md](PROMPT_MODES.md) | Conversation vs. operational vs. focus prompt modes |
 | [REFERENCE_APP.md](REFERENCE_APP.md) | The practical integration pattern for production apps |
 | [BOUNDARY_NORMALIZATION.md](BOUNDARY_NORMALIZATION.md) | What validation should stay app-owned after the model responds |
-| [ROLE_LEDGER_CHANNEL_ARCHITECTURE.md](ROLE_LEDGER_CHANNEL_ARCHITECTURE.md) | The longer-term architecture direction: roles, ledgers, channels, and firewalls |
-| [PERSONA_NETWORK_ARCHITECTURE.md](PERSONA_NETWORK_ARCHITECTURE.md) | The narrower path from one expert role to peer consultation to multi-role systems |
 
 ## Examples
 

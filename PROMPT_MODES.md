@@ -91,7 +91,7 @@ If an action needs an identifier, the prompt must expose real identifiers or an 
 If an action needs an enum, the prompt must expose valid values in-world.
 If an action needs a recipient, the prompt must expose a directory.
 
-This is not hypothetical. A real production failure in Savor came from exactly this class of miss:
+This is not hypothetical. A real production failure in a nutrition-coaching app on Archetype came from exactly this class of miss:
 
 - the role was expected to update writable entities
 - the prompt did not expose the real entity IDs

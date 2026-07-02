@@ -1147,7 +1147,7 @@ You load state, memories, history, and patterns in parallel (Section 3). One of 
 
 You didn't change anything. The AI starts behaving differently — longer responses, different tone, ignoring nudges. The model provider shipped an update.
 
-- **Pin model versions** when possible (e.g., `gemini-3-flash-preview` vs `gemini-3-flash-latest`). Dated versions give you stability; latest gives you improvements. Choose deliberately.
+- **Pin model versions** when possible (e.g., `gemini-3.5-flash` (a pinned version) vs a `-latest` alias). Dated versions give you stability; latest gives you improvements. Choose deliberately.
 - **Keep regression tests** for critical behaviors: Does the AI still confirm before deleting? Does it still respect language settings? These should be functional tests against your pipeline, not unit tests against AI output.
 - **Log prompt + response pairs** for a sample of production traffic. When behavior drifts, you can diff before/after to identify what changed.
 
@@ -1278,7 +1278,7 @@ The 30-minute Quick Reference above builds each block. This anatomy shows you ho
 A new persona takes ~50 lines of config via `definePersona()`. The SDK handles prompt assembly, memory budget, structured actions, side-effect validation, conversation lifecycle, and all the EQ patterns described above.
 
 ```typescript
-import { definePersona, Gemini } from 'archetype'
+import { definePersona, Gemini } from '@itaila/archetype'
 
 const coach = definePersona({
   identity: { name: 'Coach', expertise: ['executive coaching'], relationship: 'trusted thinking partner', northStar: "CEO's growth" },
