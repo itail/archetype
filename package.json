@@ -1,5 +1,5 @@
 {
-  "name": "@itail/archetype",
+  "name": "@itaila/archetype",
   "version": "0.3.30",
   "description": "TypeScript SDK for building AI expert personas that feel human, remember what matters, and act reliably",
   "type": "module",
